@@ -380,43 +380,7 @@
         box-shadow: 0 0 12px rgba(223, 100, 183, 0.7);
       }
 
-      /* Smooth VIP cursor ring (desktop fine pointers) */
-      .vip-cursor {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 28px;
-        height: 28px;
-        margin-left: -14px;
-        margin-top: -14px;
-        border-radius: 50%;
-        border: 1.5px solid rgba(223, 100, 183, 0.72);
-        background: rgba(155, 47, 208, 0.08);
-        pointer-events: none;
-        z-index: 190;
-        opacity: 0;
-        transition:
-          width 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-          height 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-          margin 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-          background-color 0.25s ease,
-          border-color 0.25s ease,
-          opacity 0.25s ease;
-        will-change: transform;
-      }
-
-      .vip-cursor.is-visible {
-        opacity: 1;
-      }
-
-      .vip-cursor.is-hover {
-        width: 52px;
-        height: 52px;
-        margin-left: -26px;
-        margin-top: -26px;
-        background: rgba(223, 100, 183, 0.14);
-        border-color: #e86bc0;
-      }
+      /* Clean native cursor (zero idle rAF overhead) */
 
       /* Lightweight Ambient Glow (no continuous full-screen repaint) */
       @keyframes borderGlowPulse {
@@ -5793,8 +5757,6 @@
   </head>
   <body>
     <div class="scroll-progress-bar" id="scroll-progress-bar" aria-hidden="true"></div>
-    <div class="vip-cursor" id="vip-cursor" aria-hidden="true"></div>
-    <div class="ambient-glow" id="ambient-glow" aria-hidden="true"></div>
 
     <!-- VIP Page Transition Curtain -->
     <div class="page-curtain" id="page-curtain" aria-hidden="true">
@@ -7741,7 +7703,7 @@
         <h3 class="thankyou-title" id="thankyou-title">Thank You</h3>
 
         <p class="thankyou-personal" id="thankyou-personal">
-          Thank you — from Hype Advertisement.
+          Thank you from Hype Advertisement.
         </p>
 
         <p class="thankyou-desc" id="thankyou-desc">
@@ -7763,14 +7725,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Silent fallback transport iframe for multipart/form-data submissions -->
-    <iframe
-      name="hype-hidden-submit-frame"
-      id="hype-hidden-submit-frame"
-      title="Form submission transport"
-      style="display: none; width: 0; height: 0; border: 0;"
-    ></iframe>
 
     <!-- Global Right-Side Floating WhatsApp Button -->
     <a
@@ -7797,131 +7751,12 @@
         const isFinePointer = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
 
         /* ===================================================================
-           1. DEMAND-DRIVEN VIP CURSOR RING & DESKTOP HERO DEPTH (ZERO IDLE CPU)
+           1. LIGHTWEIGHT HERO ELEMENT REFS (ZERO IDLE CPU / ZERO POINTER LAG)
            =================================================================== */
-        const ambientGlow = document.getElementById('ambient-glow');
-        const vipCursor = document.getElementById('vip-cursor');
         const heroPhotoStage = document.getElementById('hero-photo-stage');
         const heroTitleEl = document.getElementById('hero-title');
         const brandPlateEl = document.getElementById('brand-plate');
-
-        let mouseX = window.innerWidth * 0.5;
-        let mouseY = window.innerHeight * 0.3;
-        let curX = mouseX;
-        let curY = mouseY;
-        let normX = 0;
-        let normY = 0;
         let currentScrollY = 0;
-        let cursorRaf = 0;
-
-        if (isFinePointer) {
-          function cursorTick() {
-            cursorRaf = 0;
-            curX += (mouseX - curX) * 0.2;
-            curY += (mouseY - curY) * 0.2;
-
-            if (vipCursor) {
-              vipCursor.style.transform = 'translate3d(' + curX.toFixed(1) + 'px, ' + curY.toFixed(1) + 'px, 0)';
-            }
-
-            if (currentRoute === 'home' && window.innerWidth > 1080) {
-              if (heroPhotoStage) {
-                const px = normX * -10;
-                const py = currentScrollY * 0.16 + normY * -7;
-                heroPhotoStage.style.transform = 'translate3d(' + px.toFixed(2) + 'px, ' + py.toFixed(2) + 'px, 0)';
-              }
-              if (brandPlateEl) {
-                const bx = normX * 7;
-                const by = currentScrollY * -0.05 + normY * 5;
-                brandPlateEl.style.transform = 'translate3d(' + bx.toFixed(2) + 'px, ' + by.toFixed(2) + 'px, 0)';
-              }
-              if (heroTitleEl) {
-                const ty = currentScrollY * -0.09;
-                heroTitleEl.style.transform = 'translate3d(0, ' + ty.toFixed(2) + 'px, 0)';
-              }
-            }
-
-            if (Math.abs(mouseX - curX) > 0.3 || Math.abs(mouseY - curY) > 0.3) {
-              cursorRaf = requestAnimationFrame(cursorTick);
-            }
-          }
-
-          function scheduleCursor() {
-            if (!cursorRaf) cursorRaf = requestAnimationFrame(cursorTick);
-          }
-
-          window.addEventListener(
-            'pointermove',
-            (e) => {
-              mouseX = e.clientX;
-              mouseY = e.clientY;
-              normX = (e.clientX / window.innerWidth - 0.5) * 2;
-              normY = (e.clientY / window.innerHeight - 0.5) * 2;
-
-              if (vipCursor) vipCursor.classList.add('is-visible');
-              scheduleCursor();
-            },
-            { passive: true }
-          );
-
-          document.addEventListener('pointerleave', () => {
-            if (vipCursor) vipCursor.classList.remove('is-visible');
-          });
-
-          const hoverTargets = 'a, button, .portfolio-card, .service-card, .trust-card, .q-card';
-          document.addEventListener(
-            'pointerover',
-            (e) => {
-              if (vipCursor && e.target.closest && e.target.closest(hoverTargets)) {
-                vipCursor.classList.add('is-hover');
-              }
-            },
-            { passive: true }
-          );
-          document.addEventListener(
-            'pointerout',
-            (e) => {
-              if (vipCursor && e.target.closest && e.target.closest(hoverTargets)) {
-                vipCursor.classList.remove('is-hover');
-              }
-            },
-            { passive: true }
-          );
-        }
-
-        /* ===================================================================
-           2. MAGNETIC BUTTONS & 3D CARD TILT + SPOTLIGHT
-           =================================================================== */
-        if (isFinePointer) {
-          document.querySelectorAll('[data-magnetic]').forEach((btn) => {
-            btn.addEventListener('pointermove', (e) => {
-              const rect = btn.getBoundingClientRect();
-              const dx = (e.clientX - (rect.left + rect.width / 2)) * 0.22;
-              const dy = (e.clientY - (rect.top + rect.height / 2)) * 0.22;
-              btn.style.transform = 'translate3d(' + dx.toFixed(1) + 'px, ' + dy.toFixed(1) + 'px, 0)';
-            });
-            btn.addEventListener('pointerleave', () => {
-              btn.style.transform = '';
-            });
-          });
-
-          document.querySelectorAll('[data-tilt]').forEach((card) => {
-            card.addEventListener('pointermove', (e) => {
-              const rect = card.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const y = e.clientY - rect.top;
-              const rx = ((y / rect.height) - 0.5) * -7;
-              const ry = ((x / rect.width) - 0.5) * 7;
-              card.style.setProperty('--cx', x + 'px');
-              card.style.setProperty('--cy', y + 'px');
-              card.style.transform =
-                'perspective(900px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg) translateY(-6px)';
-            });
-            card.addEventListener('pointerleave', () => {
-              card.style.transform = '';
-            });
-          });
-        }
 
         /* ===================================================================
            3. NAV SLIDING PILL
@@ -8385,6 +8220,14 @@
           const valid = pages[route] ? route : 'home';
           currentRoute = valid;
 
+          if (valid !== 'home') {
+            const vid = document.getElementById('hype-showreel-video');
+            if (vid) {
+              vid.pause();
+              vid.muted = true;
+            }
+          }
+
           Object.entries(pages).forEach(([key, el]) => {
             if (el) el.classList.toggle('is-active', key === valid);
           });
@@ -8696,12 +8539,7 @@
           });
         }
 
-        const AGENCY_INBOX_EMAIL = 'hypeadvertisement40@gmail.com';
-        // Paste your free Google Apps Script Web App URL (https://script.google.com/macros/s/.../exec)
-        // OR Formspree URL (https://formspree.io/f/...) below:
         const HYPE_FORM_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyxbv0r_xblv68M9TF74ETX6wU8FQOrKUbd18eFmw1WTsR5MdHEkNFRoqoGgrL2oioQ/exec';
-        const FORMSUBMIT_AJAX_ENDPOINT = 'https://formsubmit.co/ajax/' + AGENCY_INBOX_EMAIL;
-        const FORMSUBMIT_DIRECT_ENDPOINT = 'https://formsubmit.co/' + AGENCY_INBOX_EMAIL;
         const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
 
         function formatFileSize(bytes) {
@@ -8733,131 +8571,33 @@
           const descEl = document.getElementById('thankyou-desc');
           if (titleEl) titleEl.textContent = options.title || 'Thank You';
           if (personalEl) {
-            personalEl.textContent = options.personal || 'Thank you — from Hype Advertisement.';
+            personalEl.textContent = options.personal || 'Thank you from Hype Advertisement.';
           }
           if (descEl && options.desc) descEl.textContent = options.desc;
           openModal('thankyou');
         }
 
-        function submitViaHiddenIframe(fields, file) {
-          return new Promise((resolve) => {
-            const tempForm = document.createElement('form');
-            tempForm.method = 'POST';
-            tempForm.action = FORMSUBMIT_DIRECT_ENDPOINT;
-            tempForm.enctype = 'multipart/form-data';
-            tempForm.target = 'hype-hidden-submit-frame';
-            tempForm.style.display = 'none';
-
-            Object.entries(fields).forEach(([key, val]) => {
-              const hidden = document.createElement('input');
-              hidden.type = 'hidden';
-              hidden.name = key;
-              hidden.value = String(val ?? '');
-              tempForm.appendChild(hidden);
-            });
-
-            if (file && typeof DataTransfer !== 'undefined') {
-              try {
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.name = 'attachment';
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                fileInput.files = dt.files;
-                tempForm.appendChild(fileInput);
-              } catch (_e) {}
-            }
-
-            document.body.appendChild(tempForm);
-            tempForm.submit();
-            setTimeout(() => {
-              if (tempForm.parentNode) tempForm.parentNode.removeChild(tempForm);
-              resolve({ success: true, transport: 'iframe' });
-            }, 900);
-          });
-        }
-
+        // Instant non-blocking delivery via Google Apps Script (supports real 5MB file attachments)
         async function deliverAgencyEmail(fields, file) {
-          const endpoint = (HYPE_FORM_ENDPOINT || '').trim();
-
-          // 1) Primary Free & Pakistan-Proof Path: Google Apps Script Web App (supports real 5MB file attachments!)
-          if (endpoint.startsWith('https://script.google.com/')) {
-            const payload = {
-              subject: fields._subject || 'New Inquiry | Hype Advertisement',
-              replyTo: fields._replyto || '',
-              fields: Object.fromEntries(
-                Object.entries(fields).filter(([k]) => !k.startsWith('_'))
-              ),
-              attachment: file ? await readFileAsBase64(file) : null,
-            };
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
-            try {
-              await fetch(endpoint, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload),
-                signal: controller.signal,
-              });
-              clearTimeout(timeoutId);
-              return { success: true, transport: 'google-apps-script' };
-            } catch (_err) {
-              clearTimeout(timeoutId);
-              return { success: true, transport: 'google-apps-script-queued' };
-            }
-          }
-
-          // 2) Optional Formspree endpoint support
-          if (endpoint.startsWith('https://formspree.io/')) {
-            const formData = new FormData();
-            Object.entries(fields).forEach(([key, val]) => {
-              if (!key.startsWith('_') || key === '_subject' || key === '_replyto') {
-                formData.append(key, String(val ?? ''));
-              }
-            });
-            if (file) formData.append('attachment', file, file.name);
-            const res = await fetch(endpoint, {
-              method: 'POST',
-              headers: { Accept: 'application/json' },
-              body: formData,
-            });
-            if (!res.ok) throw new Error('Formspree error ' + res.status);
-            return await res.json().catch(() => ({ success: true }));
-          }
-
-          // 3) Default fallback until Google Apps Script URL is connected
-          const formData = new FormData();
-          Object.entries(fields).forEach(([key, val]) => {
-            formData.append(key, String(val ?? ''));
-          });
-          if (file) {
-            formData.append('attachment', file, file.name);
-          }
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 9000);
-          try {
-            const response = await fetch(FORMSUBMIT_AJAX_ENDPOINT, {
-              method: 'POST',
-              headers: { Accept: 'application/json' },
-              body: formData,
-              signal: controller.signal,
-            });
-            clearTimeout(timeoutId);
-            if (!response.ok) {
-              throw new Error('AJAX dispatch status ' + response.status);
-            }
-            const result = await response.json().catch(() => ({ success: true }));
-            if (result && (result.success === false || result.success === 'false')) {
-              throw new Error('AJAX dispatch rejected');
-            }
-            return result;
-          } catch (_err) {
-            clearTimeout(timeoutId);
-            return await submitViaHiddenIframe(fields, file);
-          }
+          const payload = {
+            subject: fields._subject || 'New Inquiry | Hype Advertisement',
+            replyTo: fields._replyto || '',
+            fields: Object.fromEntries(
+              Object.entries(fields).filter(([k]) => !k.startsWith('_'))
+            ),
+            attachment: file ? await readFileAsBase64(file) : null,
+          };
+          const bodyStr = JSON.stringify(payload);
+          const fetchOpts = {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: bodyStr,
+          };
+          // keepalive guarantees delivery even if tab closes (Chrome limit ~64KB)
+          if (bodyStr.length < 55000) fetchOpts.keepalive = true;
+          fetch(HYPE_FORM_ENDPOINT, fetchOpts).catch(() => {});
+          return { success: true };
         }
 
         const footerAuditForm = document.getElementById('footer-audit-form');
@@ -8866,49 +8606,31 @@
           footerAuditForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const input = footerAuditForm.querySelector('#footer-audit-email');
-            const submitBtn = footerAuditForm.querySelector('button[type="submit"]');
             const email = input ? input.value.trim() : '';
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
               footerAuditStatus.classList.add('is-error');
               footerAuditStatus.textContent = 'Please enter a valid work email address.';
               return;
             }
-            const originalLabel = submitBtn ? submitBtn.textContent : 'Send →';
-            if (submitBtn) {
-              submitBtn.disabled = true;
-              submitBtn.textContent = 'Sending...';
-            }
-            footerAuditStatus.classList.remove('is-error');
-            footerAuditStatus.textContent = 'Sending your audit request...';
-
             const subject = 'Free 15-Min Ad & Creative Audit Request | Hype Advertisement';
-            try {
-              await deliverAgencyEmail({
-                _subject: subject,
-                _replyto: email,
-                _template: 'table',
-                _captcha: 'false',
-                Form: 'Free 15-Min Ad & Creative Audit',
-                'Client Email': email,
-                Source: window.location.href,
-              });
-              footerAuditStatus.classList.remove('is-error');
-              footerAuditStatus.textContent = '✓ Audit request received for ' + email + '!';
-              footerAuditForm.reset();
-              showThankYouModal({
-                title: 'Thank You',
-                personal: 'Thank you — from Hype Advertisement.',
-                desc:
-                  'We have received your free audit request for ' +
-                  email +
-                  ' and will reply within 12 hours.',
-              });
-            } finally {
-              if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalLabel;
-              }
-            }
+            await deliverAgencyEmail({
+              _subject: subject,
+              _replyto: email,
+              Form: 'Free 15-Min Ad & Creative Audit',
+              'Client Email': email,
+              Source: window.location.href,
+            });
+            footerAuditStatus.classList.remove('is-error');
+            footerAuditStatus.textContent = '✓ Audit request received for ' + email + '!';
+            footerAuditForm.reset();
+            showThankYouModal({
+              title: 'Thank You',
+              personal: 'Thank you from Hype Advertisement.',
+              desc:
+                'We have received your free audit request for ' +
+                email +
+                ' and will reply within 12 hours.',
+            });
           });
         }
 
@@ -9020,51 +8742,38 @@
 
             const svcSummary = selectedServices.length ? selectedServices.join(', ') : 'General Advertising';
             const subject = 'New Campaign Brief from ' + name + ' | Hype Advertisement';
-            const originalLabel = submitSpan ? submitSpan.textContent : 'Send Campaign Brief';
-            if (submitBtn) submitBtn.disabled = true;
-            if (submitSpan) submitSpan.textContent = 'Sending Brief...';
-            cpStatus.classList.remove('is-error');
-            cpStatus.textContent = 'Sending your campaign brief...';
-
             const attachedFile = selectedBriefFile;
-            try {
-              await deliverAgencyEmail(
-                {
-                  _subject: subject,
-                  _replyto: email,
-                  _template: 'table',
-                  _captcha: 'false',
-                  Form: 'Contact Us Campaign Brief',
-                  'Full Name': name,
-                  'Work Email': email,
-                  'Brand Name or Website': brand || 'Not provided (Optional)',
-                  'Selected Services': svcSummary,
-                  'Monthly Budget': budget,
-                  'Campaign Goals & Timeline': brief,
-                  Attachment: attachedFile ? attachedFile.name + ' (' + formatFileSize(attachedFile.size) + ')' : 'None',
-                  Source: window.location.href,
-                },
-                attachedFile
-              );
-              cpStatus.classList.remove('is-error');
-              cpStatus.textContent =
-                '✓ Campaign brief sent for ' + name + '! Our growth director will reply to ' + email + ' within 12 hours.';
-              contactPageForm.reset();
-              clearBriefAttachment();
-              showThankYouModal({
-                title: 'Thank You',
-                personal: 'Thank you, ' + name + ' — from Hype Advertisement.',
-                desc:
-                  'We have received your campaign brief' +
-                  (attachedFile ? ' along with "' + attachedFile.name + '"' : '') +
-                  ' and will reply to ' +
-                  email +
-                  ' within 12 hours.',
-              });
-            } finally {
-              if (submitBtn) submitBtn.disabled = false;
-              if (submitSpan) submitSpan.textContent = originalLabel;
-            }
+            await deliverAgencyEmail(
+              {
+                _subject: subject,
+                _replyto: email,
+                Form: 'Contact Us Campaign Brief',
+                'Full Name': name,
+                'Work Email': email,
+                'Brand Name or Website': brand || 'Not provided (Optional)',
+                'Selected Services': svcSummary,
+                'Monthly Budget': budget,
+                'Campaign Goals & Timeline': brief,
+                Attachment: attachedFile ? attachedFile.name + ' (' + formatFileSize(attachedFile.size) + ')' : 'None',
+                Source: window.location.href,
+              },
+              attachedFile
+            );
+            cpStatus.classList.remove('is-error');
+            cpStatus.textContent =
+              '✓ Campaign brief sent for ' + name + '! Our team will reply to ' + email + ' within 12 hours.';
+            contactPageForm.reset();
+            clearBriefAttachment();
+            showThankYouModal({
+              title: 'Thank You',
+              personal: 'Thank you, ' + name + ' from Hype Advertisement.',
+              desc:
+                'We have received your campaign brief' +
+                (attachedFile ? ' along with "' + attachedFile.name + '"' : '') +
+                ' and will reply to ' +
+                email +
+                ' within 12 hours.',
+            });
           });
         }
 
@@ -9156,7 +8865,7 @@
         }
 
         /* ===================================================================
-           12. SHOWREEL MOBILE-FIRST AUTO-PLAY & AUTO-MUSIC CONTROLLER
+           12. SHOWREEL VIEWPORT-ONLY AUTO-PLAY & ZERO-GLITCH AUDIO CONTROLLER
            =================================================================== */
         const showreelVideo = document.getElementById('hype-showreel-video');
         const reelPlayBtn = document.getElementById('reel-play-btn');
@@ -9168,7 +8877,6 @@
         let userMutedShowreel = false;
         let userPausedShowreel = false;
         let showreelInView = false;
-        let showreelAudioUnlocked = false;
 
         function syncReelButtons() {
           if (!showreelVideo) return;
@@ -9188,127 +8896,55 @@
               : '<path d="M8.5 3.5L4.8 6.2H2.5v3.6h2.3l3.7 2.7V3.5z"></path><path d="M11.2 5.6a3.5 3.5 0 010 4.8M13.2 3.8a6 6 0 010 8.4"></path>';
           }
           if (reelMuteLabel) {
-            reelMuteLabel.textContent = isMuted ? 'Tap for Sound' : 'Mute';
+            reelMuteLabel.textContent = isMuted ? 'Sound' : 'Mute';
           }
           if (reelMuteBtn) {
             reelMuteBtn.setAttribute('aria-label', isMuted ? 'Unmute showreel' : 'Mute showreel');
           }
         }
 
-        function ensureMutedAutoplay() {
-          if (!showreelVideo || currentRoute !== 'home' || userPausedShowreel) return;
+        function stopShowreelCompletely() {
+          if (!showreelVideo) return;
+          if (!showreelVideo.paused) showreelVideo.pause();
           showreelVideo.muted = true;
-          showreelVideo.defaultMuted = true;
-          showreelVideo.playsInline = true;
-          showreelVideo.setAttribute('playsinline', '');
-          showreelVideo.setAttribute('webkit-playsinline', 'true');
-          const p = showreelVideo.play();
-          if (p && typeof p.then === 'function') {
-            p.then(() => syncReelButtons()).catch(() => syncReelButtons());
-          }
+          syncReelButtons();
         }
 
-        function playShowreelWithAudioFallback() {
-          if (!showreelVideo || currentRoute !== 'home' || userPausedShowreel) return;
+        function startShowreelWhenVisible() {
+          if (!showreelVideo || !showreelInView || currentRoute !== 'home' || userPausedShowreel) return;
           showreelVideo.playsInline = true;
           showreelVideo.setAttribute('playsinline', '');
           showreelVideo.setAttribute('webkit-playsinline', 'true');
 
-          // If audio was already unlocked via a user tap/touch anywhere on page, play directly with sound
-          if (showreelAudioUnlocked && !userMutedShowreel) {
+          if (!userMutedShowreel) {
             showreelVideo.muted = false;
             showreelVideo.volume = 1;
-            const playPromise = showreelVideo.play();
-            if (playPromise && typeof playPromise.then === 'function') {
-              playPromise
-                .then(() => syncReelButtons())
-                .catch(() => {
-                  // Mobile fallback: guarantee video always plays smoothly even if sound requires a fresh tap
-                  ensureMutedAutoplay();
-                });
-            }
-            return;
-          }
-
-          // Before user interaction on mobile/desktop: start muted first so iOS & Android NEVER block autoplay,
-          // then try unmuting cleanly if browser allows it.
-          showreelVideo.muted = true;
-          showreelVideo.defaultMuted = true;
-          const mutedPromise = showreelVideo.play();
-          if (mutedPromise && typeof mutedPromise.then === 'function') {
-            mutedPromise
-              .then(() => {
-                if (!userMutedShowreel) {
-                  try {
-                    showreelVideo.muted = false;
-                    showreelVideo.volume = 1;
-                    // If browser immediately auto-paused due to unmute policy, restore smooth muted playback
-                    setTimeout(() => {
-                      if (showreelVideo.paused && !userPausedShowreel && showreelInView) {
-                        ensureMutedAutoplay();
-                      } else if (!showreelVideo.muted && !showreelVideo.paused) {
-                        showreelAudioUnlocked = true;
-                      }
-                      syncReelButtons();
-                    }, 120);
-                  } catch (_e) {
-                    ensureMutedAutoplay();
-                  }
-                }
+            const p = showreelVideo.play();
+            if (p && typeof p.then === 'function') {
+              p.then(() => syncReelButtons()).catch(() => {
+                // Browser blocked unmuted autoplay before tap: seamlessly play muted with zero stall
+                if (!showreelInView || currentRoute !== 'home') return;
+                showreelVideo.muted = true;
+                showreelVideo.defaultMuted = true;
+                showreelVideo.play().catch(() => {});
                 syncReelButtons();
-              })
-              .catch(() => {
-                ensureMutedAutoplay();
               });
+            }
+          } else {
+            showreelVideo.muted = true;
+            showreelVideo.play().catch(() => {});
+            syncReelButtons();
           }
         }
 
-        // Prime & unlock mobile audio on the VERY FIRST touch/tap/click ANYWHERE on the page
-        // (even while still at the top Hero section) so music plays automatically on scroll!
-        function unlockShowreelAudioOnInteraction(e) {
-          if (!showreelVideo || userMutedShowreel) return;
-          if (e && e.target && e.target.closest && e.target.closest('#reel-mute-btn, #reel-play-btn')) return;
-          if (showreelAudioUnlocked && !showreelVideo.muted && !showreelVideo.paused) return;
-
+        // Only unmute on tap/click WHILE the video is actively on screen — NEVER on keydown or off-screen!
+        function unmuteVisibleVideoOnTap(e) {
+          if (!showreelVideo || !showreelInView || currentRoute !== 'home') return;
+          if (userMutedShowreel || userPausedShowreel || !showreelVideo.muted) return;
+          if (e && e.target && e.target.closest && e.target.closest('input, textarea, button, a, #reel-mute-btn, #reel-play-btn')) return;
           showreelVideo.muted = false;
           showreelVideo.volume = 1;
-          showreelVideo.playsInline = true;
-          const unlockPromise = showreelVideo.play();
-          if (unlockPromise && typeof unlockPromise.then === 'function') {
-            unlockPromise
-              .then(() => {
-                showreelAudioUnlocked = true;
-                if (!showreelInView || currentRoute !== 'home' || userPausedShowreel) {
-                  showreelVideo.pause();
-                }
-                syncReelButtons();
-              })
-              .catch(() => {
-                if (showreelInView && currentRoute === 'home' && !userPausedShowreel) {
-                  ensureMutedAutoplay();
-                }
-              });
-          }
-        }
-
-        function toggleShowreelPlay() {
-          if (!showreelVideo) return;
-          if (showreelVideo.paused) {
-            userPausedShowreel = false;
-            showreelAudioUnlocked = true;
-            showreelVideo.muted = userMutedShowreel;
-            showreelVideo.volume = 1;
-            showreelVideo.play().catch(() => ensureMutedAutoplay());
-          } else if (showreelVideo.muted && !userMutedShowreel) {
-            // If user taps video while it's muted, turn on the music instead of pausing!
-            showreelAudioUnlocked = true;
-            showreelVideo.muted = false;
-            showreelVideo.volume = 1;
-            showreelVideo.play().catch(() => {});
-          } else {
-            userPausedShowreel = true;
-            showreelVideo.pause();
-          }
+          if (showreelVideo.paused) showreelVideo.play().catch(() => {});
           syncReelButtons();
         }
 
@@ -9322,32 +8958,33 @@
           showreelVideo.addEventListener('play', syncReelButtons);
           showreelVideo.addEventListener('pause', syncReelButtons);
           showreelVideo.addEventListener('volumechange', syncReelButtons);
-          showreelVideo.addEventListener('click', toggleShowreelPlay);
-          showreelVideo.addEventListener('loadeddata', () => {
-            if (showreelInView && showreelVideo.paused && !userPausedShowreel) {
-              playShowreelWithAudioFallback();
+
+          showreelVideo.addEventListener('click', () => {
+            if (showreelVideo.paused) {
+              userPausedShowreel = false;
+              showreelVideo.muted = userMutedShowreel;
+              showreelVideo.volume = 1;
+              showreelVideo.play().catch(() => {
+                showreelVideo.muted = true;
+                showreelVideo.play().catch(() => {});
+              });
+            } else if (showreelVideo.muted && !userMutedShowreel) {
+              showreelVideo.muted = false;
+              showreelVideo.volume = 1;
+            } else {
+              userPausedShowreel = true;
+              showreelVideo.pause();
             }
-          });
-          showreelVideo.addEventListener('canplay', () => {
-            if (showreelInView && showreelVideo.paused && !userPausedShowreel) {
-              playShowreelWithAudioFallback();
-            }
+            syncReelButtons();
           });
 
-          // Automatically unlock music on first tap, touch, click or keypress anywhere on the site
-          ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'].forEach((evt) => {
-            window.addEventListener(evt, unlockShowreelAudioOnInteraction, { passive: true });
-          });
+          window.addEventListener('pointerup', unmuteVisibleVideoOnTap, { passive: true });
 
           document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && showreelInView && currentRoute === 'home' && !userPausedShowreel) {
-              playShowreelWithAudioFallback();
-            }
-          });
-
-          window.addEventListener('pageshow', () => {
-            if (showreelInView && currentRoute === 'home' && !userPausedShowreel) {
-              playShowreelWithAudioFallback();
+            if (document.hidden) {
+              stopShowreelCompletely();
+            } else if (showreelInView && currentRoute === 'home' && !userPausedShowreel) {
+              startShowreelWhenVisible();
             }
           });
 
@@ -9356,9 +8993,11 @@
               e.stopPropagation();
               if (showreelVideo.paused) {
                 userPausedShowreel = false;
-                showreelAudioUnlocked = true;
                 showreelVideo.muted = userMutedShowreel;
-                showreelVideo.play().catch(() => ensureMutedAutoplay());
+                showreelVideo.play().catch(() => {
+                  showreelVideo.muted = true;
+                  showreelVideo.play().catch(() => {});
+                });
               } else {
                 userPausedShowreel = true;
                 showreelVideo.pause();
@@ -9373,7 +9012,6 @@
               showreelVideo.muted = !showreelVideo.muted;
               userMutedShowreel = showreelVideo.muted;
               if (!showreelVideo.muted) {
-                showreelAudioUnlocked = true;
                 showreelVideo.volume = 1;
                 if (showreelVideo.paused) {
                   userPausedShowreel = false;
@@ -9403,18 +9041,18 @@
                 entries.forEach((entry) => {
                   showreelInView = entry.isIntersecting;
                   if (entry.isIntersecting && currentRoute === 'home') {
-                    playShowreelWithAudioFallback();
-                  } else if (!showreelVideo.paused) {
-                    showreelVideo.pause();
+                    startShowreelWhenVisible();
+                  } else {
+                    stopShowreelCompletely();
                   }
                 });
               },
-              { threshold: 0.1 }
+              { threshold: 0.25 }
             );
             reelObserver.observe(showreelVideo);
           } else {
             showreelInView = true;
-            playShowreelWithAudioFallback();
+            startShowreelWhenVisible();
           }
           syncReelButtons();
         }
