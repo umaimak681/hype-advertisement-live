@@ -21,16 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Build production site
-        run: npm run build
+      - name: Assemble static site
+        run: |
+          mkdir -p dist
+          cp index.html dist/
+          cp -r public/. dist/
+          echo "hypeadvertisement.com" > dist/CNAME
+          touch dist/.nojekyll
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
