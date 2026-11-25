@@ -8588,15 +8588,12 @@
             attachment: file ? await readFileAsBase64(file) : null,
           };
           const bodyStr = JSON.stringify(payload);
-          const fetchOpts = {
+          fetch(HYPE_FORM_ENDPOINT, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: bodyStr,
-          };
-          // keepalive guarantees delivery even if tab closes (Chrome limit ~64KB)
-          if (bodyStr.length < 55000) fetchOpts.keepalive = true;
-          fetch(HYPE_FORM_ENDPOINT, fetchOpts).catch(() => {});
+          }).catch(() => {});
           return { success: true };
         }
 
